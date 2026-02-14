@@ -35,39 +35,40 @@ PREDEFINED_INDICES = {
 # ====================================
 def load_data(tickers, start="2015-01-01", end=None):
     """
-    Safely downloads price data.
-    Skips invalid tickers automatically.
+    Download all tickers together (more stable for NSE).
     """
 
-    all_data = []
+    try:
+        data = yf.download(
+            tickers,
+            start=start,
+            end=end,
+            group_by="ticker",
+            auto_adjust=True,
+            threads=False
+        )
 
-    for ticker in tickers:
-        try:
-            df = yf.download(ticker, start=start, end=end)
+        if data.empty:
+            raise ValueError("Yahoo returned empty data.")
 
-            if df.empty:
-                continue
+        # If multiple tickers
+        if isinstance(data.columns, pd.MultiIndex):
+            data = data.xs("Close", axis=1, level=1)
 
-            df = df[["Close"]]
-            df.columns = [ticker]
+        # If single ticker
+        elif "Close" in data.columns:
+            data = data[["Close"]]
 
-            all_data.append(df)
+        data = data.dropna(how="all")
+        data = data.ffill().dropna()
 
-        except Exception:
-            continue
+        if data.empty:
+            raise ValueError("No valid tickers found.")
 
-    if not all_data:
-        raise ValueError("No valid tickers found. Please check symbols.")
+        return data
 
-    # Merge all valid data
-    data = pd.concat(all_data, axis=1)
-
-    # Clean data
-    data = data.dropna(how="all")
-    data = data.ffill().dropna()
-
-    return data
-
+    except Exception as e:
+        raise ValueError("Data download failed. Please try again later.")
 
 # ====================================
 # FUNCTION 2: COMPUTE LOG RETURNS
