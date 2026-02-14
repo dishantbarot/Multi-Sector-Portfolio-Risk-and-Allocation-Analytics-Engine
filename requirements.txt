@@ -1,8 +1,8 @@
-numpy
-pandas
-yfinance
-matplotlib
-seaborn
 streamlit
+pandas
+numpy
+matplotlib
 scipy
-scikit-learn
+yfinance==0.2.37
+scikit-learn==1.0.2
+seaborn
